@@ -253,7 +253,7 @@ class ANN
 
 int main(int argc, char* argv[])
 {
-  const string model_file = "model.bin";
+  const string model_file = "model-main.bin";
   ANN ann(10, 784, 0.02F);
 
   // Default mode is test if no arg given — you've already trained

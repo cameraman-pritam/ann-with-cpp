@@ -2,3 +2,5 @@ ann
 new
 a.out
 *.csv
+*.bin
+main
