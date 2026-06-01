@@ -278,7 +278,7 @@ int main(int argc, char* argv[])
     iota(indices.begin(), indices.end(), 0);
     mt19937 rng(42);
 
-    int epochs = 10;
+    int epochs = 40;
     cout << "\n---Training (" << n << " samples, " << epochs << " epochs)---\n";
 
     for (int epoch = 1; epoch <= epochs; epoch++)
