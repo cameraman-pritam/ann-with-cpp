@@ -1,0 +1,292 @@
+# ==============================================================================
+# .clang-tidy — ISRO-Aligned C++ Static Analysis Configuration
+# ==============================================================================
+#
+# Basis / Authority:
+#   • MISRA C++:2008 / MISRA C++ 2023
+#     — Restricts undefined/unspecified/impl-defined behaviour
+#     — Enforces type safety, no raw pointer arithmetic without bounds
+#   • JSF AV Rules (Lockheed / US DoD — widely adopted in aerospace)
+#     — AV Rule 97:  No dynamic memory allocation after init
+#     — AV Rule 119: No recursion (relaxed here for ANN tree structures)
+#     — AV Rule 175: No use of C-style casts
+#   • NASA GSFC 582-2012-C++ Coding Standards
+#     — Doxygen doc required, no unreachable code, RAII everywhere
+#   • C++ Core Guidelines (Stroustrup / Herb Sutter)
+#     — Enforced via cppcoreguidelines-* checks
+#   • CERT C++ Coding Standard (SEI — Carnegie Mellon)
+#     — Enforced via cert-* checks
+#
+# Project-specific relaxations (documented per rule):
+#   • ANN matrix/tensor operations: some pointer arithmetic allowed
+#   • Emscripten bindings: EM_JS / EM_ASM macros exempted
+#   • CMake generated code: excluded from analysis
+#   • Conan package dirs: excluded from analysis
+#
+# Usage:
+#   clang-tidy <file> -- -std=c++17 -I<include_dirs>
+#   run-clang-tidy -p build/ src/
+# ==============================================================================
+
+# ── Active Checks ─────────────────────────────────────────────────────────────
+#
+# Format: comma-separated, '-' prefix to disable a check
+# '*' = enable all in a group; then selectively disable problematic ones
+#
+Checks: >
+  -*,
+
+  # ── Core Guidelines (C++ best practices) ─────────────────────────────────
+  cppcoreguidelines-*,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-pro-type-vararg,
+
+  # ── Bug-prone patterns ────────────────────────────────────────────────────
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+
+  # ── CERT C++ Secure Coding ────────────────────────────────────────────────
+  cert-dcl21-cpp,
+  cert-dcl58-cpp,
+  cert-err52-cpp,
+  cert-err60-cpp,
+  cert-fio38-c,
+  cert-mem57-cpp,
+  cert-msc50-cpp,
+  cert-msc51-cpp,
+  cert-oop57-cpp,
+  cert-oop58-cpp,
+
+  # ── Clang Static Analyzer ─────────────────────────────────────────────────
+  clang-analyzer-*,
+  -clang-analyzer-alpha.*,
+
+  # ── Modernize: enforce C++17 idioms ──────────────────────────────────────
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-use-nodiscard,
+
+  # ── Performance ───────────────────────────────────────────────────────────
+  performance-*,
+
+  # ── Portability (critical for Emscripten / WASM cross-compilation) ────────
+  portability-*,
+
+  # ── Readability ───────────────────────────────────────────────────────────
+  readability-*,
+  -readability-magic-numbers,
+  -readability-named-parameter,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length,
+
+  # ── Concurrency / Miscellaneous ───────────────────────────────────────────
+  concurrency-*,
+  misc-*,
+  -misc-non-private-member-variables-in-classes,
+  -misc-no-recursion,
+
+  # ── Hicpp (High Integrity C++) — aligns closely with JSF AV Rules ─────────
+  hicpp-*,
+  -hicpp-no-array-decay,
+  -hicpp-vararg,
+  -hicpp-avoid-c-arrays,
+  -hicpp-use-noexcept,
+
+  # ── Disabled: over-restrictive, incompatible with ANN / Emscripten ────────
+  -fuchsia-*,
+  -llvmlibc-*,
+  -llvm-header-guard,
+  -llvm-namespace-comment,
+  -abseil-*,
+  -android-*,
+  -darwin-*,
+  -objc-*,
+  -zircon-*,
+  -altera-*,
+  -openmp-*
+
+# ── Warning-as-Error ──────────────────────────────────────────────────────────
+# Promote critical safety checks to errors (cannot be suppressed without waiver)
+# MISRA C++ / NASA: zero-tolerance on UB, uninitialized reads, resource leaks
+WarningsAsErrors: >
+  bugprone-use-after-move,
+  bugprone-undefined-memory-manipulation,
+  bugprone-dangling-handle,
+  clang-analyzer-core.NullDereference,
+  clang-analyzer-core.UndefinedBinaryOperatorResult,
+  clang-analyzer-cplusplus.NewDeleteLeaks,
+  clang-analyzer-cplusplus.NewDelete,
+  clang-analyzer-security.insecureAPI.memcpy,
+  clang-analyzer-security.insecureAPI.strcpy,
+  cppcoreguidelines-pro-type-reinterpret-cast,
+  cppcoreguidelines-pro-type-const-cast,
+  cppcoreguidelines-slicing,
+  cert-err60-cpp,
+  cert-msc50-cpp
+
+# ── Header Filter ─────────────────────────────────────────────────────────────
+# Analyse only project headers; exclude Conan deps, system headers, CMake artifacts
+HeaderFilterRegex: '^(src|include|ann|layers|math|utils)\/.*\.(h|hpp)$'
+
+# ── Excluded Paths ────────────────────────────────────────────────────────────
+# (Use ExcludeHeaderFilterRegex or per-file suppression in CMake)
+# Patterns to suppress via inline comments for generated/third-party code:
+#   // NOLINT
+#   // NOLINTNEXTLINE(check-name)
+
+# ── Check Options ─────────────────────────────────────────────────────────────
+CheckOptions:
+
+  # ── Naming Conventions (JSF AV Rules 46–56 / NASA GSFC §3.2) ────────────
+  # AV Rule 50: Type names begin with Uppercase
+  # AV Rule 51: Functions/methods use camelCase
+  # AV Rule 52: Variables use camelCase (or snake_case — consistent within project)
+  # AV Rule 56: Constants/enum values ALL_CAPS
+  # NASA: Hungarian notation discouraged; prefixes only for globals/members
+
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+
+  - key: readability-identifier-naming.EnumConstantCase
+    value: UPPER_CASE
+
+  - key: readability-identifier-naming.FunctionCase
+    value: camelCase
+
+  - key: readability-identifier-naming.MethodCase
+    value: camelCase
+
+  - key: readability-identifier-naming.MemberCase
+    value: camelCase
+
+  - key: readability-identifier-naming.MemberPrefix
+    value: m_                         # m_layerCount, m_weights — JSF AV Rule 67
+
+  - key: readability-identifier-naming.StaticMemberCase
+    value: camelCase
+
+  - key: readability-identifier-naming.StaticMemberPrefix
+    value: s_                         # s_instanceCount
+
+  - key: readability-identifier-naming.GlobalVariableCase
+    value: camelCase
+
+  - key: readability-identifier-naming.GlobalVariablePrefix
+    value: g_                         # g_config — discouraged, prefer namespaces
+
+  - key: readability-identifier-naming.ConstantCase
+    value: UPPER_CASE                 # MAX_LAYERS, LEARNING_RATE_DEFAULT
+
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: UPPER_CASE
+
+  - key: readability-identifier-naming.VariableCase
+    value: camelCase
+
+  - key: readability-identifier-naming.ParameterCase
+    value: camelCase
+
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: CamelCase
+
+  - key: readability-identifier-naming.TypeAliasCase
+    value: CamelCase
+
+  - key: readability-identifier-naming.TypedefCase
+    value: CamelCase
+
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case                 # namespace ann::layers {}
+
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE                 # MISRA C++ R16-0-*: macros ALL_CAPS
+
+  # ── Function Length (JSF AV Rule 1) ──────────────────────────────────────
+  # Max 200 logical SLOC per function
+  - key: readability-function-size.LineThreshold
+    value: '200'
+
+  - key: readability-function-size.StatementThreshold
+    value: '100'
+
+  - key: readability-function-size.BranchThreshold
+    value: '20'
+
+  - key: readability-function-size.ParameterThreshold
+    value: '7'                        # NASA: max 7 params; prefer structs
+
+  - key: readability-function-size.NestingThreshold
+    value: '5'                        # Deep nesting = complexity smell
+
+  - key: readability-function-size.VariableThreshold
+    value: '30'
+
+  # ── Cognitive Complexity ─────────────────────────────────────────────────
+  - key: readability-function-cognitive-complexity.Threshold
+    value: '25'
+
+  # ── Braces (MISRA C++ R6-4-1: if/for/while always braced) ───────────────
+  - key: hicpp-braces-around-statements.ShortStatementLines
+    value: '0'
+
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: '0'
+
+  - key: google-readability-braces-around-statements.ShortStatementLines
+    value: '0'
+
+  # ── Include Order ─────────────────────────────────────────────────────────
+  - key: llvm-include-order.IncludeStyle
+    value: google
+
+  # ── modernize-use-default-member-init ────────────────────────────────────
+  - key: modernize-use-default-member-init.UseAssignment
+    value: '1'
+
+  # ── modernize-loop-convert ────────────────────────────────────────────────
+  - key: modernize-loop-convert.MinConfidence
+    value: reasonable
+
+  # ── performance-move-const-arg ────────────────────────────────────────────
+  - key: performance-move-const-arg.CheckTriviallyCopyableMove
+    value: '1'
+
+  # ── cppcoreguidelines-special-member-functions ────────────────────────────
+  # Rule of Five / Rule of Zero enforcement
+  - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+    value: '1'
+
+  - key: cppcoreguidelines-special-member-functions.AllowMissingMoveFunctions
+    value: '0'
+
+  # ── bugprone-suspicious-string-compare ────────────────────────────────────
+  - key: bugprone-suspicious-string-compare.WarnOnImplicitComparison
+    value: '1'
+
+  # ── cert-msc51: reproducible seeds (important for ANN reproducibility) ────
+  - key: cert-msc51-cpp.DisallowedSeedTypes
+    value: time_t;std::time_t
+
+  # ── misc-const-correctness ────────────────────────────────────────────────
+  - key: misc-const-correctness.TransformValues
+    value: '1'
+
+  - key: misc-const-correctness.TransformReferences
+    value: '1'
+
+  - key: misc-const-correctness.TransformPointersAsValues
+    value: '0'                        # Allow mutable pointer targets in ANN layers
+
+  # ── portability-simd-intrinsics ───────────────────────────────────────────
+  # Warn when SIMD intrinsics could be replaced by std::experimental::simd
+  - key: portability-simd-intrinsics.Suggest
+    value: '1'
