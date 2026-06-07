@@ -399,11 +399,11 @@ class ANN
 
 int main(int argc, char* argv[])
 {
-  const string model_file = "model.bin";
+  const string model_file = "new.bin";
 
   // Topology: input=784, hidden1=256, hidden2=128, hidden3=64, output=10
   // To change the architecture just edit this list — the rest adapts automatically.
-  const vector<int> topology = {784, 256, 128, 64, 10};
+  const vector<int> topology = {784, 256, 128, 64, 32, 16, 10};
 
   ANN ann(topology, 0.01F);  // start with lr=0.01; will decay automatically
 
