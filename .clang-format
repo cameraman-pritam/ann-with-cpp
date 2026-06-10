@@ -1,225 +1,48 @@
-# ==============================================================================
-# .clang-format — ISRO-Aligned C++ Style Configuration
-# ==============================================================================
-#
-# Basis / Authority:
-#   • MISRA C++:2008 / MISRA C++ 2023 (safety-critical rules)
-#   • JSF AV Rules (Joint Strike Fighter Air Vehicle C++ Coding Standards)
-#     — AV Rule 1: Max 200 logical SLOC per function
-#     — AV Rule 50: Types/classes start with Uppercase
-#   • NASA GSFC C++ Coding Standards (580-C++ guidelines)
-#   • ISO/IEC 14882:2017 (C++17) — same standard used by ISRO embedded teams
-#   • C++ Core Guidelines (Stroustrup / Herb Sutter)
-#
-# Project context:
-#   • ANN (Artificial Neural Networks) in C++17
-#   • Build system: CMake (optional Conan)
-#   • Cross-compilation target: Emscripten (WASM)
-#   • Host: Linux / macOS / Windows
-#
-# Usage:
-#   clang-format -i <file>         (format a single file)
-#   find . -name "*.cpp" -o -name "*.h" | xargs clang-format -i
-# ==============================================================================
-
 ---
-Language: Cpp
+# Start with a clean, standardized base
+BasedOnStyle: Google
 
-# ── C++ Standard ──────────────────────────────────────────────────────────────
-# C++17 — modern, stable, widely supported by Emscripten (em++ -std=c++17)
-Standard: c++17
-
-# ── Base Style ────────────────────────────────────────────────────────────────
-# LLVM as neutral base; overrides below align with JSF/NASA style
-BasedOnStyle: LLVM
-
-# ── Indentation ───────────────────────────────────────────────────────────────
-# JSF AV Rule 41 / NASA: 4-space indentation, no tabs (portability)
+# --- SPACING & INDENTATION ---
+# 2 spaces for indentation (Standard C++ practice). No tabs.
 IndentWidth: 2
 TabWidth: 2
 UseTab: Never
-ContinuationIndentWidth: 4
-IndentCaseLabels: true
-IndentCaseBlocks: false
-IndentPPDirectives: BeforeHash       # #if / #ifdef indented for readability
-IndentWrappedFunctionNames: false
-LambdaBodyIndentation: Signature
-NamespaceIndentation: None           # Don't indent namespace body (saves horizontal space)
 
-# ── Column Limit ─────────────────────────────────────────────────────────────
-# NASA 580-C++ recommends <= 120 chars; 100 is stricter (readable on split screen)
-ColumnLimit: 100
+# Line length. Python's "Black" formatter uses 88, which is great for readability.
+ColumnLimit: 88
 
-# ── Brace Style ──────────────────────────────────────────────────────────────
-# Allman style: braces on their own line — NASA/JSF standard, maximises diff clarity
-BreakBeforeBraces: Allman
-BraceWrapping:
-  AfterCaseLabel: true
-  AfterClass: true
-  AfterControlStatement: Always
-  AfterEnum: true
-  AfterFunction: true
-  AfterNamespace: true
-  AfterObjCDeclaration: true
-  AfterStruct: true
-  AfterUnion: true
-  AfterExternBlock: true
-  BeforeCatch: true
-  BeforeElse: true
-  BeforeLambdaBody: false            # Lambdas keep compact form
-  BeforeWhile: false
-  IndentBraces: false
-  SplitEmptyFunction: false
-  SplitEmptyRecord: false
-  SplitEmptyNamespace: false
+# --- VERTICAL BREATHING ROOM (No cramped code) ---
+# These rules disable C++ "one-liners" so everything expands into clear blocks.
+# Even with 2-space indents, this keeps your control flow easy to read.
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
 
-# ── Pointer / Reference Alignment ────────────────────────────────────────────
-# C++ convention: type-aligned (int* p, not int *p)
-PointerAlignment: Left
-ReferenceAlignment: Left
-QualifierAlignment: Left            # const int* vs int* const — left is standard
+# Keep up to 2 empty lines to separate logical chunks of math/logic
+MaxEmptyLinesToKeep: 2
+KeepEmptyLinesAtTheStartOfBlocks: false
 
-# ── Spaces ────────────────────────────────────────────────────────────────────
-SpaceAfterCStyleCast: false
-SpaceAfterLogicalNot: false
-SpaceAfterTemplateKeyword: true
-SpaceAroundPointerQualifiers: Default
+# --- BRACKET PLACEMENT ---
+# 'Attach' keeps the opening brace on the same line.
+BreakBeforeBraces: Attach
+
+# --- CLEAN ALIGNMENT FOR MATH & VARIABLES ---
+# This aligns consecutive variable assignments beautifully,
+# which is highly readable for Neural Network weights/biases initialization.
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AlignOperands: Align
+
+# --- PRECISE SPACING ---
 SpaceBeforeAssignmentOperators: true
-SpaceBeforeCaseColon: false
-SpaceBeforeCpp11BracedList: false
-SpaceBeforeCtorInitializerColon: true
-SpaceBeforeInheritanceColon: true
-SpaceBeforeParens: ControlStatements # Space before '(' in if/for/while, not functions
-SpaceBeforeRangeBasedForLoopColon: true
-SpaceBeforeSquareBrackets: false
-SpaceInEmptyBlock: false
+SpaceBeforeParens: ControlStatements
 SpaceInEmptyParentheses: false
-SpacesBeforeTrailingComments: 2     # Two spaces before // inline comments
-SpacesInAngles: Never
-SpacesInCStyleCastParentheses: false
-SpacesInConditionalStatement: false
-SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
+SpaceAfterCStyleCast: true
 
-# ── Include Ordering ─────────────────────────────────────────────────────────
-# Sorted includes reduce merge conflicts and improve reproducibility (JSF / NASA)
-SortIncludes: CaseSensitive
-IncludeBlocks: Regroup
-IncludeCategories:
-  # 1. Corresponding header first (e.g., "foo.h" for "foo.cpp")
-  - Regex: '^".*\.h(pp)?"'
-    Priority: 1
-    SortPriority: 1
-  # 2. Project-internal headers
-  - Regex: '^"(ann|layers|activations|utils|math|emscripten_bindings)/'
-    Priority: 2
-    SortPriority: 2
-  # 3. Third-party (Eigen, OpenBLAS, Conan packages, Emscripten headers)
-  - Regex: '^<(Eigen|emscripten|catch2|spdlog|nlohmann)/'
-    Priority: 3
-    SortPriority: 3
-  # 4. C++ standard library
-  - Regex: '^<[a-z_]+>$'
-    Priority: 4
-    SortPriority: 4
-  # 5. C legacy headers (discouraged — prefer C++ wrappers per MISRA C++ R17-0-2)
-  - Regex: '^<c[a-z]+'
-    Priority: 5
-    SortPriority: 5
-
-# ── Line Breaking ─────────────────────────────────────────────────────────────
-AlwaysBreakAfterReturnType: None
-AlwaysBreakBeforeMultilineStrings: false
-AlwaysBreakTemplateDeclarations: Yes  # Each template parameter on its own line
-BreakBeforeBinaryOperators: NonAssignment
-BreakBeforeConceptDeclarations: Always
-BreakBeforeTernaryOperators: true
-BreakConstructorInitializers: BeforeColon
-BreakInheritanceList: BeforeColon
-BreakStringLiterals: true
-
-# ── Function / Constructor Arguments ─────────────────────────────────────────
-AllowAllArgumentsOnNextLine: false
-AllowAllParametersOfDeclarationOnNextLine: false
-BinPackArguments: false              # Each arg on its own line when wrapping
-BinPackParameters: false
-AllowShortBlocksOnASingleLine: Never
-AllowShortCaseLabelsOnASingleLine: false
-AllowShortEnumsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: Inline  # Only trivial inline getters
-AllowShortIfStatementsOnASingleLine: Never
-AllowShortLambdasOnASingleLine: Inline
-AllowShortLoopsOnASingleLine: false
-
-# ── Access Modifier Indentation ───────────────────────────────────────────────
-AccessModifierOffset: -4             # public:/private: not extra-indented
-
-# ── Comments ─────────────────────────────────────────────────────────────────
-# Doxygen-style block comments are standard in ISRO/NASA for documentation generation
-ReflowComments: true
-CommentPragmas: '(NOLINT|NOLINTNEXTLINE|TODO|FIXME|HACK|XXX|NOTE|ISRO-WAIVER)'
-
-# ── Alignment ─────────────────────────────────────────────────────────────────
-AlignAfterOpenBracket: Align
-AlignArrayOfStructures: Left
-AlignConsecutiveAssignments:
-  Enabled: false                     # Disabled — causes noise in diffs
-AlignConsecutiveBitFields:
-  Enabled: true
-AlignConsecutiveDeclarations:
-  Enabled: false
-AlignConsecutiveMacros:
-  Enabled: true
-AlignEscapedNewlines: Left
-AlignOperands: Align
-AlignTrailingComments:
-  Kind: Always
-  OverEmptyLines: 1
-
-# ── Empty Lines ───────────────────────────────────────────────────────────────
-EmptyLineAfterAccessModifier: Never
-EmptyLineBeforeAccessModifier: LogicalBlock
-KeepEmptyLinesAtTheStartOfBlocks: false
-MaxEmptyLinesToKeep: 2
-SeparateDefinitionBlocks: Leave
-
-# ── Macros ────────────────────────────────────────────────────────────────────
-# MISRA C++ R16-0-*: macros are discouraged; only defines listed here are structural
-AttributeMacros:
-  - EMSCRIPTEN_KEEPALIVE
-  - EMSCRIPTEN_BINDINGS
-  - ISRO_NODISCARD
-ForEachMacros:
-  - EXPECT_CALL
-  - ON_CALL
-StatementMacros:
-  - EMSCRIPTEN_BINDINGS
-  - static_assert
-
-# ── Penalties (line break cost tuning) ───────────────────────────────────────
-PenaltyBreakAssignment: 10
-PenaltyBreakBeforeFirstCallParameter: 30
-PenaltyBreakComment: 300
-PenaltyBreakFirstLessLess: 120
-PenaltyBreakOpenParenthesis: 0
-PenaltyBreakString: 1000
-PenaltyBreakTemplateDeclaration: 10
-PenaltyExcessCharacter: 100
-PenaltyIndentedWhitespace: 1
-PenaltyReturnTypeOnItsOwnLine: 60
-
-# ── Miscellaneous ─────────────────────────────────────────────────────────────
-CompactNamespaces: false
-ConstructorInitializerIndentWidth: 4
-Cpp11BracedListStyle: true
-DeriveLineEnding: false
-DerivePointerAlignment: false
-DisableFormat: false
-ExperimentalAutoDetectBinPacking: false
-FixNamespaceComments: true           # // namespace foo  end-of-namespace comment
-LineEnding: LF                       # Unix line endings (cross-platform safe)
-PackConstructorInitializers: Never
-RemoveBracesLLVM: false
-SortUsingDeclarations: true
+# Indent switch statements properly
+IndentCaseLabels: true
 ...
